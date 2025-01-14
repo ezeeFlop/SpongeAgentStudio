@@ -23,54 +23,34 @@ docker ps
 ```
 
 ### Environment Setup
-Create a `.env` file based on `.env.example`:
+Create a `.env` file based on `.env-example`:
 
 ```env
+
 # Database Configuration
-DATABASE_URL=postgresql+asyncpg://sponge:sponge@localhost:5432/spongeagent
-DATABASE_TEST_URL=postgresql+asyncpg://sponge:sponge@localhost:5432/spongeagent_test
+POSTGRES_SERVER=localhost
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=your_secure_password
+POSTGRES_DB=spongeagent
+POSTGRES_PORT=5432
 
-# OpenAI Configuration
+# Frontend Configuration
+FRONTEND_URL=http://localhost:5173
+
+# API Keys
 OPENAI_API_KEY=your_openai_api_key
-OPENAI_MODEL=gpt-4-turbo-preview  # or gpt-3.5-turbo for faster, cheaper responses
+SERPER_API_KEY=your_serper_api_key 
+# OPENAI_API_BASE="OPTIONAL-FILL-IN-YOUR-OPENAI-CUSTOM-BASE/PROXY-URL"
+# OPENAI_PROXY_MODELS="openai/gpt4o,openai/gpt4omini,openai/geminiflash,openai/geminipro,openai/claudesonnet35"
+# GROQ_API_KEY="FILL-IN-YOUR-GROQ_API_KEY"
+# LMSTUDIO_API_BASE="http://localhost:1234/v1"
+# ANTHROPIC_API_KEY="FILL-IN-YOUR-ANTHROPIC_API_KEY"
+# AGENTOPS_API_KEY="FILL-IN-YOUR-AGENTOPS_API_KEY"
+# OLLAMA_HOST="http://localhost:11434"
+# OLLAMA_MODELS="ollama/llama3.2,ollama/llama3.1,ollama/gemma2,ollama/phi3.5"
 
-# Application Settings
-APP_ENV=development  # development, staging, production
-DEBUG=true
-LOG_LEVEL=DEBUG  # DEBUG, INFO, WARNING, ERROR, CRITICAL
-
-# API Configuration
-API_V1_PREFIX=/api/v1
-PROJECT_NAME=SpongeAgent Studio
-BACKEND_CORS_ORIGINS=["http://localhost:3000","http://localhost:5173"]  # Frontend URLs
-
-# Security
-SECRET_KEY=your-secret-key-at-least-32-characters
-ACCESS_TOKEN_EXPIRE_MINUTES=30
 ```
 
-Environment Variables Explained:
-- **Database Configuration**:
-  - `DATABASE_URL`: Main database connection string
-  - `DATABASE_TEST_URL`: Test database connection string (for running tests)
-
-- **OpenAI Configuration**:
-  - `OPENAI_API_KEY`: Your OpenAI API key for CrewAI
-  - `OPENAI_MODEL`: The GPT model to use (affects cost and performance)
-
-- **Application Settings**:
-  - `APP_ENV`: Current environment
-  - `DEBUG`: Enable debug mode
-  - `LOG_LEVEL`: Logging verbosity
-
-- **API Configuration**:
-  - `API_V1_PREFIX`: API version prefix
-  - `PROJECT_NAME`: Application name
-  - `BACKEND_CORS_ORIGINS`: Allowed frontend origins
-
-- **Security**:
-  - `SECRET_KEY`: Used for token signing
-  - `ACCESS_TOKEN_EXPIRE_MINUTES`: JWT token expiration
 
 ## 🌟 Features
 
