@@ -1,125 +1,86 @@
-import { useEffect, useRef, useState } from 'react'
-import { Card } from '@/components/ui/card'
+import React from 'react';
+import ReactFlow, { Node, Edge, Position } from 'reactflow';
+import 'reactflow/dist/style.css';
 
-type Node = {
-  id: string
-  label: string
-  type: 'task' | 'agent'
-  status: 'pending' | 'running' | 'completed' | 'failed'
-  x: number
-  y: number
+interface ExecutionGraphProps {
+  nodes: Array<{
+    id: string;
+    label: string;
+    type: 'crew' | 'agent';
+    status: string;
+    isActive?: boolean;
+    x: number;
+    y: number;
+  }>;
+  edges: Array<{
+    id: string;
+    source: string;
+    target: string;
+  }>;
 }
 
-type Edge = {
-  id: string
-  source: string
-  target: string
-}
-
-type ExecutionGraphProps = {
-  nodes: Node[]
-  edges: Edge[]
-  onNodeClick?: (nodeId: string) => void
-}
-
-const statusColors = {
-  pending: '#FCD34D',
-  running: '#60A5FA',
-  completed: '#34D399',
-  failed: '#EF4444',
-}
-
-export default function ExecutionGraph({ nodes, edges, onNodeClick }: ExecutionGraphProps) {
-  const svgRef = useRef<SVGSVGElement>(null)
-  const [dimensions, setDimensions] = useState({ width: 0, height: 0 })
-
-  useEffect(() => {
-    if (svgRef.current) {
-      const observer = new ResizeObserver((entries) => {
-        for (const entry of entries) {
-          const { width, height } = entry.contentRect
-          setDimensions({ width, height })
-        }
-      })
-
-      observer.observe(svgRef.current.parentElement!)
-      return () => observer.disconnect()
+function CustomNode({ data }: { data: any }) {
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'running':
+        return 'bg-green-500';
+      case 'completed':
+        return 'bg-blue-500';
+      case 'error':
+        return 'bg-red-500';
+      default:
+        return 'bg-gray-500';
     }
-  }, [])
-
-  const nodeRadius = 30
-  const fontSize = 12
+  };
 
   return (
-    <Card className="w-full h-full min-h-[500px] p-4">
-      <div className="w-full h-full">
-        <svg
-          ref={svgRef}
-          width="100%"
-          height="100%"
-          viewBox={`0 0 ${Math.max(dimensions.width, 600)} ${Math.max(dimensions.height, 400)}`}
-          className="overflow-visible"
-        >
-          {/* Draw edges */}
-          {edges.map((edge) => {
-            const source = nodes.find((n) => n.id === edge.source)
-            const target = nodes.find((n) => n.id === edge.target)
-            if (!source || !target) return null
-
-            return (
-              <line
-                key={edge.id}
-                x1={source.x}
-                y1={source.y}
-                x2={target.x}
-                y2={target.y}
-                stroke="#94A3B8"
-                strokeWidth={2}
-                markerEnd="url(#arrowhead)"
-              />
-            )
-          })}
-
-          {/* Draw nodes */}
-          {nodes.map((node) => (
-            <g
-              key={node.id}
-              transform={`translate(${node.x},${node.y})`}
-              onClick={() => onNodeClick?.(node.id)}
-              className="cursor-pointer"
-            >
-              <circle
-                r={nodeRadius}
-                fill={statusColors[node.status]}
-                className="transition-colors duration-200"
-              />
-              <text
-                textAnchor="middle"
-                dy="0.3em"
-                fill="white"
-                fontSize={fontSize}
-                fontWeight="bold"
-              >
-                {node.label}
-              </text>
-            </g>
-          ))}
-
-          {/* Arrow marker definition */}
-          <defs>
-            <marker
-              id="arrowhead"
-              markerWidth="10"
-              markerHeight="7"
-              refX="9"
-              refY="3.5"
-              orient="auto"
-            >
-              <polygon points="0 0, 10 3.5, 0 7" fill="#94A3B8" />
-            </marker>
-          </defs>
-        </svg>
+    <div className={`px-4 py-2 shadow-md rounded-md border-2 ${
+      data.isActive ? 'border-blue-500 animate-pulse' : 'border-gray-200'
+    } bg-white`}>
+      <div className="flex items-center">
+        <div className={`w-3 h-3 rounded-full mr-2 ${getStatusColor(data.status)}`} />
+        <div>
+          <div className="text-sm font-bold">{data.label}</div>
+          <div className="text-xs text-gray-500">{data.type}</div>
+        </div>
       </div>
-    </Card>
-  )
+    </div>
+  );
+}
+
+export default function ExecutionGraph({ nodes, edges }: ExecutionGraphProps) {
+  const flowNodes: Node[] = nodes.map((node) => ({
+    id: node.id,
+    position: { x: node.x, y: node.y },
+    data: {
+      label: node.label,
+      type: node.type,
+      status: node.status,
+      isActive: node.isActive,
+    },
+    type: 'custom',
+  }));
+
+  const flowEdges: Edge[] = edges.map((edge) => ({
+    id: edge.id,
+    source: edge.source,
+    target: edge.target,
+    type: 'smoothstep',
+  }));
+
+  const nodeTypes = {
+    custom: CustomNode,
+  };
+
+  return (
+    <div style={{ height: 400 }}>
+      <ReactFlow
+        nodes={flowNodes}
+        edges={flowEdges}
+        nodeTypes={nodeTypes}
+        fitView
+        attributionPosition="bottom-left"
+      />
+    </div>
+  );
 } 

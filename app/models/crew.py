@@ -20,7 +20,7 @@ class Crew(Base):
     verbose = Column(Boolean, server_default='true')
     max_rpm = Column(Integer, server_default='10')
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), server_onupdate=func.now())
 
     # Relationships
     agents = relationship("Agent", secondary=crew_agents, back_populates="crews")

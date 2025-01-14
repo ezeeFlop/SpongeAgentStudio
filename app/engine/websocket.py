@@ -4,6 +4,7 @@ import asyncio
 from fastapi import WebSocket
 from app.engine.models import StatusUpdate
 import logging
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -16,13 +17,27 @@ def adapt_message_for_frontend(status_update: StatusUpdate) -> Dict:
         'error': 'execution_error'
     }
     
+    # Helper function to convert datetime objects
+    def convert_datetime(obj):
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        return obj
+
+    # Convert data recursively
+    def convert_data(data):
+        if isinstance(data, dict):
+            return {k: convert_data(v) for k, v in data.items()}
+        elif isinstance(data, list):
+            return [convert_data(item) for item in data]
+        return convert_datetime(data)
+    
     return {
         'type': message_type_map.get(status_update.status, 'execution_update'),
         'payload': {
             'status': status_update.status,
             'message': status_update.message,
-            'data': status_update.data,
-            'timestamp': status_update.timestamp.isoformat()
+            'data': convert_data(status_update.data),
+            'timestamp': convert_datetime(status_update.timestamp)
         }
     }
 

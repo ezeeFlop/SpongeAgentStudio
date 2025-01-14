@@ -272,21 +272,23 @@ export default function AgentEditor() {
           </div>
 
           {/* Tools Panel */}
-          <div className="col-span-12 lg:col-span-4 space-y-4">
-            <Card>
-              <CardContent className="p-4">
-                <h3 className="font-semibold mb-4">Available Tools</h3>
-                <div className="space-y-2">
-                  {availableTools.map((tool) => (
-                    <DraggableTool
-                      key={tool.name}
-                      tool={tool}
-                      onDrop={() => handleToolDrop(tool.name)}
-                    />
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+          <div className="col-span-12 lg:col-span-4">
+            <div className="sticky top-4">
+              <Card>
+                <CardContent className="p-4">
+                  <h3 className="font-semibold mb-4">Available Tools</h3>
+                  <div className="space-y-2 max-h-[calc(100vh-12rem)] overflow-y-auto">
+                    {availableTools.map((tool) => (
+                      <DraggableTool
+                        key={tool.name}
+                        tool={tool}
+                        onDrop={() => handleToolDrop(tool.name)}
+                      />
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </div>
       </div>
