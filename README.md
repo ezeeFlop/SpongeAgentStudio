@@ -4,6 +4,74 @@ SpongeAgent Studio is a modern web application for managing and orchestrating AI
 
 ![SpongeAgent Studio Demo](demo.gif)
 
+## 🐳 Quick Start with Docker
+
+### Setting up PostgreSQL
+1. Start a PostgreSQL instance:
+```bash
+docker run --name sponge-postgres \
+  -e POSTGRES_USER=sponge \
+  -e POSTGRES_PASSWORD=sponge \
+  -e POSTGRES_DB=spongeagent \
+  -p 5432:5432 \
+  -d postgres:15
+```
+
+2. Verify the container is running:
+```bash
+docker ps
+```
+
+### Environment Setup
+Create a `.env` file based on `.env.example`:
+
+```env
+# Database Configuration
+DATABASE_URL=postgresql+asyncpg://sponge:sponge@localhost:5432/spongeagent
+DATABASE_TEST_URL=postgresql+asyncpg://sponge:sponge@localhost:5432/spongeagent_test
+
+# OpenAI Configuration
+OPENAI_API_KEY=your_openai_api_key
+OPENAI_MODEL=gpt-4-turbo-preview  # or gpt-3.5-turbo for faster, cheaper responses
+
+# Application Settings
+APP_ENV=development  # development, staging, production
+DEBUG=true
+LOG_LEVEL=DEBUG  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+
+# API Configuration
+API_V1_PREFIX=/api/v1
+PROJECT_NAME=SpongeAgent Studio
+BACKEND_CORS_ORIGINS=["http://localhost:3000","http://localhost:5173"]  # Frontend URLs
+
+# Security
+SECRET_KEY=your-secret-key-at-least-32-characters
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+```
+
+Environment Variables Explained:
+- **Database Configuration**:
+  - `DATABASE_URL`: Main database connection string
+  - `DATABASE_TEST_URL`: Test database connection string (for running tests)
+
+- **OpenAI Configuration**:
+  - `OPENAI_API_KEY`: Your OpenAI API key for CrewAI
+  - `OPENAI_MODEL`: The GPT model to use (affects cost and performance)
+
+- **Application Settings**:
+  - `APP_ENV`: Current environment
+  - `DEBUG`: Enable debug mode
+  - `LOG_LEVEL`: Logging verbosity
+
+- **API Configuration**:
+  - `API_V1_PREFIX`: API version prefix
+  - `PROJECT_NAME`: Application name
+  - `BACKEND_CORS_ORIGINS`: Allowed frontend origins
+
+- **Security**:
+  - `SECRET_KEY`: Used for token signing
+  - `ACCESS_TOKEN_EXPIRE_MINUTES`: JWT token expiration
+
 ## 🌟 Features
 
 ### Agent Management
