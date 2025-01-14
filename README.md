@@ -2,6 +2,8 @@
 
 SpongeAgent Studio is a modern web application for managing and orchestrating AI agents using the [CrewAI framework](https://github.com/joaomdmoura/crewAI). It provides a sophisticated interface for creating, managing, and monitoring AI agents and their collaborative crews, making it easier to build and deploy complex AI workflows.
 
+![SpongeAgent Studio Demo](demo.gif)
+
 ## 🌟 Features
 
 ### Agent Management
