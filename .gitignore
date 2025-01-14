@@ -12,6 +12,7 @@ deploy.sh
 
 db/
 node_modules/
+frontend/node_modules/
 temp/
 keys.py
 

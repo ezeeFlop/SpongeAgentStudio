@@ -4,8 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Play, StopCircle, Terminal } from 'lucide-react'
-import { useCrews, useTasks, useExecuteCrew, useCrewVariables } from '@/lib/api/hooks'
-import { useCrewWebSocket } from '@/lib/api/hooks'
+import { useCrews, useTasks, useExecuteCrew, useCrewVariables, useCrewWebSocket } from '@/lib/api/hooks'
 import ExecutionGraph from '@/components/execution/ExecutionGraph'
 import {
   Select,
@@ -31,11 +30,15 @@ export default function Execution() {
   const { data: tasks = [] } = useTasks()
   const { data: variables = [] } = useCrewVariables(crewId)
   const executeCrew = useExecuteCrew()
-  const { status: executionStatus, error: wsError, logs } = useCrewWebSocket(crewId)
-  const isConnected = !wsError
-  const isRunning = executionStatus?.status === 'running'
+  const { 
+    status: executionStatus, 
+    error: wsError, 
+    logs,
+    isConnected 
+  } = useCrewWebSocket(crewId)
 
   const crew = crews.find(c => c.id === crewId)
+  const isRunning = executionStatus?.status === 'running'
 
   // Initialize inputs when variables change
   useEffect(() => {
@@ -50,11 +53,11 @@ export default function Execution() {
         return newInputs
       })
     }
-  }, [variables]) // Only depend on variables
+  }, [variables])
 
   const handleCrewSelect = (selectedCrewId: string) => {
     navigate(`/execution?crew=${selectedCrewId}`)
-    setInputs({}) // Reset inputs when crew changes
+    setInputs({})
   }
 
   const handleStart = async () => {
@@ -84,7 +87,6 @@ export default function Execution() {
 
   useEffect(() => {
     if (crew) {
-      // Create nodes for crew and its agents
       const nodes = [
         {
           id: crew.id,
@@ -104,7 +106,6 @@ export default function Execution() {
         })),
       ]
 
-      // Create edges from crew to agents
       const edges = crew.agents.map((agent) => ({
         id: `${crew.id}-${agent.id}`,
         source: crew.id,
@@ -135,9 +136,6 @@ export default function Execution() {
                   ))}
                 </SelectContent>
               </Select>
-              <Badge variant={isConnected ? "secondary" : "destructive"}>
-                {isConnected ? "Connected" : "Disconnected"}
-              </Badge>
             </div>
           </CardContent>
         </Card>
