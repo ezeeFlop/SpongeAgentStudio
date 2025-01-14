@@ -55,7 +55,7 @@ export default function Monitoring() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Monitoring</h1>
+        <h1 className="text-3xl font-bold">Monitoring (WIP)</h1>
         <Badge variant="outline" className="text-sm">
           <Clock className="h-3 w-3 mr-1" />
           Real-time updates

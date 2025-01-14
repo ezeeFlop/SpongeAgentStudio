@@ -27,22 +27,52 @@ class CrewCallbackHandler:
         logger.debug(f"Tool start - Agent: {agent.name} (ID: {agent_id}), Tool: {tool_name}")
         
         if agent_id:
-            self.execution_state.agent_states[agent_id] = AgentState.EXECUTING
+            # Update agent state using agent name as key
+            self.execution_state.agent_states[agent.name] = AgentState.EXECUTING.value
+            
+            # Set as current agent if not already set
+            if not self.execution_state.current_agent_name:
+                self.execution_state.current_agent_id = agent_id
+                self.execution_state.current_agent_name = agent.name
+            
+            # Log the event
+            logger.info(f"Agent {agent.name} using tool {tool_name}")
             
             asyncio.create_task(self._send_update(
                 "tool_start",
                 f"Agent {agent.name} using tool {tool_name}",
-                {"agent_id": agent_id, "tool": tool_name}
+                {
+                    "agent_id": agent_id,
+                    "agent_name": agent.name,
+                    "tool": tool_name,
+                    "input": str(input_args)[:200]  # Include truncated input for context
+                }
             ))
         else:
             logger.warning(f"No ID mapping found for agent {agent.name}")
 
     def on_tool_end(self, agent: Agent, tool_name: str, response: str) -> None:
         """Called when an agent finishes using a tool"""
-        asyncio.create_task(self._send_update(
-            "tool_end",
-            f"Agent {agent.name} finished using {tool_name}. Response: {response[:100]}...",
-        ))
+        agent_id = self.agent_id_map.get(agent.name)
+        if agent_id:
+            # Keep the agent in EXECUTING state as they might use another tool
+            self.execution_state.agent_states[agent.name] = AgentState.EXECUTING.value
+            
+            # Log the event
+            logger.info(f"Agent {agent.name} finished using tool {tool_name}")
+            
+            asyncio.create_task(self._send_update(
+                "tool_end",
+                f"Agent {agent.name} finished using {tool_name}",
+                {
+                    "agent_id": agent_id,
+                    "agent_name": agent.name,
+                    "tool": tool_name,
+                    "response": response[:200]  # Include truncated response
+                }
+            ))
+        else:
+            logger.warning(f"No ID mapping found for agent {agent.name}")
 
     def on_task_start(self, agent: Agent, task: Task) -> None:
         """Called when an agent starts a task"""
@@ -56,7 +86,7 @@ class CrewCallbackHandler:
             self.execution_state.current_agent_name = agent.name
             self.execution_state.current_task_id = task_id
             self.execution_state.current_task_name = task.description
-            self.execution_state.agent_states[agent_id] = AgentState.EXECUTING
+            self.execution_state.agent_states[agent.name] = AgentState.EXECUTING.value
             self.execution_state.task_progress[task_id] = 0.0
             
             # Log the event
@@ -81,7 +111,7 @@ class CrewCallbackHandler:
         task_id = self.task_id_map.get(task.description)
         
         if agent_id and task_id:
-            self.execution_state.agent_states[agent_id] = AgentState.IDLE
+            self.execution_state.agent_states[agent.name] = AgentState.IDLE.value
             self.execution_state.task_progress[task_id] = 1.0
             
             # Log the event
@@ -98,7 +128,7 @@ class CrewCallbackHandler:
         """Called when an agent starts its thinking process"""
         agent_id = self.agent_id_map.get(agent.name)
         if agent_id:
-            self.execution_state.agent_states[agent_id] = AgentState.THINKING
+            self.execution_state.agent_states[agent.name] = AgentState.THINKING.value
             
             # Log the event
             logger.info(f"Agent {agent.name} is thinking about task: {task.description}")
@@ -112,7 +142,7 @@ class CrewCallbackHandler:
         """Called when an agent completes its thinking process"""
         agent_id = self.agent_id_map.get(agent.name)
         if agent_id:
-            self.execution_state.agent_thoughts[agent_id] = response[:500]
+            self.execution_state.agent_thoughts[agent.name] = response[:500]
             
             # Log the event
             logger.info(f"Agent {agent.name} finished thinking")
@@ -128,7 +158,7 @@ class CrewCallbackHandler:
         """Called when human input is requested"""
         agent_id = self.agent_id_map.get(agent.name)
         if agent_id:
-            self.execution_state.agent_states[agent_id] = AgentState.WAITING
+            self.execution_state.agent_states[agent.name] = AgentState.WAITING.value
             
             # Log the event
             logger.info(f"Agent {agent.name} is waiting for human input on task: {task.description}")

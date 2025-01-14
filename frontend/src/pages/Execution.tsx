@@ -3,9 +3,20 @@ import { useSearchParams, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Play, StopCircle, Terminal, Copy, Check } from 'lucide-react'
+import { Play, StopCircle, Terminal, Copy, Check, Loader2 } from 'lucide-react'
 import { useCrews, useTasks, useExecuteCrew, useCrewVariables, useCrewWebSocket } from '@/lib/api/hooks'
-import ExecutionGraph from '@/components/execution/ExecutionGraph'
+import ReactFlow, { 
+  Background, 
+  Controls,
+  Node,
+  Edge,
+  Position,
+  Handle,
+  useNodesState,
+  useEdgesState,
+  MarkerType
+} from 'reactflow'
+import 'reactflow/dist/style.css'
 import {
   Select,
   SelectContent,
@@ -17,6 +28,115 @@ import { toast } from 'sonner'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
+// Node Types
+function CrewNode({ data }: { data: any }) {
+  return (
+    <div className="px-4 py-2 shadow-md rounded-md bg-blue-50 border-2 border-blue-200">
+      <Handle type="source" position={Position.Bottom} className="w-3 h-3 !bg-blue-500" />
+      <div className="flex items-center">
+        <div className={`w-3 h-3 rounded-full mr-2 ${
+          data.status === 'running' ? 'bg-green-500' :
+          data.status === 'completed' ? 'bg-blue-500' :
+          data.status === 'error' ? 'bg-red-500' : 'bg-gray-500'
+        }`} />
+        <div>
+          <div className="text-sm font-bold">{data.label}</div>
+          <div className="text-xs text-gray-500">crew</div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function AgentNode({ data }: { data: any }) {
+  return (
+    <>
+      <Handle type="target" position={Position.Top} className="w-3 h-3 !bg-gray-500" />
+      <div className={`px-4 py-2 shadow-md rounded-md border-2 ${
+        data.isActive ? 'border-green-500 bg-green-50 animate-pulse' : 'border-gray-300 bg-white'
+      }`}>
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center">
+            <div className={`w-3 h-3 rounded-full mr-2 ${
+              data.status === 'executing' ? 'bg-green-500' :
+              data.status === 'thinking' ? 'bg-yellow-500' :
+              data.status === 'waiting' ? 'bg-purple-500' : 'bg-gray-500'
+            }`} />
+            <div>
+              <div className="text-sm font-bold">{data.label}</div>
+              <div className="text-xs text-gray-500">agent</div>
+            </div>
+          </div>
+          {data.currentTool && (
+            <div className="text-xs text-green-600">
+              Using: {data.currentTool}
+            </div>
+          )}
+          {data.tools && data.tools.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {data.tools.map((tool: string) => (
+                <Badge key={tool} variant="secondary" className="text-xs">
+                  {tool}
+                </Badge>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+      <Handle type="source" position={Position.Bottom} className="w-3 h-3 !bg-gray-500" />
+    </>
+  )
+}
+
+function TaskNode({ data }: { data: any }) {
+  return (
+    <>
+      <Handle type="target" position={Position.Top} className="w-3 h-3 !bg-gray-500" />
+      <div className="px-4 py-2 shadow-md rounded-md bg-white border-2 border-gray-200">
+        <div className="flex items-center">
+          <div className={`w-3 h-3 rounded-full mr-2 ${
+            data.status === 'completed' ? 'bg-green-500' :
+            data.status === 'running' ? 'bg-blue-500' :
+            'bg-gray-500'
+          }`} />
+          <div>
+            <div className="text-sm font-bold">{data.label}</div>
+            <div className="text-xs text-gray-500">task</div>
+          </div>
+        </div>
+        <div className="text-xs text-gray-500 mt-1">{data.description}</div>
+      </div>
+    </>
+  )
+}
+
+const nodeTypes = {
+  crew: CrewNode,
+  agent: AgentNode,
+  task: TaskNode,
+}
+
+interface CrewTask {
+  id: string;
+  name: string;
+  agent_id: string;
+  description: string;
+}
+
+interface CrewAgent {
+  id: string;
+  name: string;
+  tools: string[];
+  tasks: CrewTask[];
+}
+
+interface Crew {
+  id: string;
+  name: string;
+  agents: CrewAgent[];
+  tasks: CrewTask[];
+}
+
 export default function Execution() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -26,8 +146,10 @@ export default function Execution() {
   const [executionEdges, setExecutionEdges] = useState<any[]>([])
   const [inputs, setInputs] = useState<Record<string, string>>({})
   const [hasCopied, setHasCopied] = useState(false);
+  const [nodes, setNodes, onNodesChange] = useNodesState([])
+  const [edges, setEdges, onEdgesChange] = useEdgesState([])
 
-  const { data: crews = [] } = useCrews()
+  const { data: crews = [] } = useCrews() as { data: Crew[] | undefined }
   const { data: tasks = [] } = useTasks()
   const { data: variables = [] } = useCrewVariables(crewId)
   const executeCrew = useExecuteCrew()
@@ -87,54 +209,86 @@ export default function Execution() {
     toast.error('Stop functionality not implemented in the engine')
   }
 
+  // Update nodes and edges when crew or execution state changes
   useEffect(() => {
     if (crew) {
-      // Get the latest execution state from messages
       const latestMessage = messages[messages.length - 1];
       const executionState = latestMessage?.payload.data?.execution_state;
       const currentAgent = executionState?.current_agent_name;
       const agentStates = executionState?.agent_states || {};
 
-      // Debug logs
-      console.log('Latest message:', latestMessage);
-      console.log('Execution state:', executionState);
-      console.log('Current agent:', currentAgent);
-      console.log('Agent states:', agentStates);
-
-      const nodes = [
-        {
-          id: crew.id,
+      // Create nodes
+      const crewNode: Node = {
+        id: crew.id,
+        type: 'crew',
+        position: { x: 300, y: 50 },
+        data: {
           label: crew.name,
-          type: 'crew',
           status: executionStatus?.status || 'pending',
-          x: 300,
-          y: 100,
         },
-        ...crew.agents.map((agent, index) => {
-          const agentState = agentStates[agent.name];
-          console.log(`Agent ${agent.name} state:`, agentState);
-          return {
-            id: agent.id,
-            label: agent.name,
-            type: 'agent',
-            status: agentState || 'pending',
-            isActive: currentAgent === agent.name,
-            x: 150 + index * 300,
-            y: 250,
-          };
-        }),
-      ]
+      };
 
-      const edges = crew.agents.map((agent) => ({
+      const agentNodes: Node[] = crew.agents.map((agent, index) => ({
+        id: agent.id,
+        type: 'agent',
+        position: { x: 150 + index * 300, y: 150 },
+        data: {
+          label: agent.name,
+          status: agentStates[agent.name] || 'pending',
+          isActive: currentAgent === agent.name,
+          currentTool: currentAgent === agent.name ? latestMessage?.payload.data?.tool : null,
+          tools: agent.tools,
+        },
+      }));
+
+      const taskNodes: Node[] = crew.agents.flatMap((agent, agentIndex) => {
+        const agentTasks = crew.tasks?.filter(t => t.agent_id === agent.id) || [];
+        return agentTasks.map((task, taskIndex) => ({
+          id: task.id,
+          type: 'task',
+          position: { x: 150 + agentIndex * 300, y: 250 + taskIndex * 100 },
+          data: {
+            label: task.name,
+            description: task.description,
+            status: executionState?.task_progress?.[task.id]?.status || 'pending',
+          },
+        }));
+      });
+
+      // Create edges
+      const crewToAgentEdges: Edge[] = crew.agents.map(agent => ({
         id: `${crew.id}-${agent.id}`,
         source: crew.id,
         target: agent.id,
-      }))
+        type: 'smoothstep',
+        animated: true,
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          width: 20,
+          height: 20,
+        },
+      }));
 
-      setExecutionNodes(nodes)
-      setExecutionEdges(edges)
+      const agentToTaskEdges: Edge[] = crew.agents.flatMap(agent => {
+        const agentTasks = crew.tasks?.filter(t => t.agent_id === agent.id) || [];
+        return agentTasks.map(task => ({
+          id: `${agent.id}-${task.id}`,
+          source: agent.id,
+          target: task.id,
+          type: 'smoothstep',
+          animated: true,
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            width: 20,
+            height: 20,
+          },
+        }));
+      });
+
+      setNodes([crewNode, ...agentNodes, ...taskNodes]);
+      setEdges([...crewToAgentEdges, ...agentToTaskEdges]);
     }
-  }, [crew, executionStatus, messages])
+  }, [crew, executionStatus, messages, setNodes, setEdges]);
 
   // Get the latest result from messages
   const latestMessage = messages[messages.length - 1];
@@ -216,7 +370,11 @@ export default function Execution() {
                     onClick={handleStart}
                     disabled={!isConnected || isRunning || Object.values(inputs).some(v => !v)}
                   >
-                    <Play className="h-4 w-4" />
+                    {isRunning ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Play className="h-4 w-4" />
+                    )}
                   </Button>
                   <Button
                     variant="outline"
@@ -229,7 +387,19 @@ export default function Execution() {
                 </div>
               </div>
             </div>
-            <ExecutionGraph nodes={executionNodes} edges={executionEdges} />
+            <div style={{ height: 500 }}>
+              <ReactFlow
+                nodes={nodes}
+                edges={edges}
+                onNodesChange={onNodesChange}
+                onEdgesChange={onEdgesChange}
+                nodeTypes={nodeTypes}
+                fitView
+              >
+                <Background />
+                <Controls />
+              </ReactFlow>
+            </div>
           </CardContent>
         </Card>
 

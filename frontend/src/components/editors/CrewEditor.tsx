@@ -373,7 +373,7 @@ export default function CrewEditor() {
     
     try {
       setIsExecuting(true)
-      await executeCrew.mutateAsync(crewId)
+      await executeCrew.mutateAsync({ crewId, inputs: {} })
       toast.success('Crew execution started')
     } catch (error) {
       toast.error('Failed to start crew execution')

@@ -25,7 +25,7 @@ export default function Settings() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Settings</h1>
+        <h1 className="text-3xl font-bold">Settings (WIP)</h1>
         <Button onClick={handleSave}>
           <Save className="h-4 w-4 mr-2" />
           Save Changes

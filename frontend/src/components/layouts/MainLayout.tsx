@@ -7,7 +7,8 @@ import {
   ListTodo,
   Play,
   Settings,
-  MonitorPlay
+  MonitorPlay,
+  Brain
 } from 'lucide-react'
 
 const navigation = [
@@ -29,6 +30,7 @@ export default function MainLayout() {
       <div className="fixed inset-y-0 z-50 flex w-72 flex-col">
         <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r bg-background px-6 pb-4">
           <div className="flex h-16 shrink-0 items-center">
+            <Brain className="h-6 w-6 mr-2" />
             <h1 className="text-xl font-bold">SpongeAgent Studio</h1>
           </div>
           <nav className="flex flex-1 flex-col">
